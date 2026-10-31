@@ -22,15 +22,10 @@ PyPDF2>=3.0.0
 python-docx>=1.1.0
 python-multipart>=0.0.9
 
-# AI providers
+# AI providers (Gemma 4 via Google AI & Groq)
 google-genai>=1.0.0
 groq>=0.9.0
-openai>=1.14.0
-anthropic>=0.25.0
 langgraph>=0.2.0
 langchain>=0.3.0
-langchain-openai>=0.2.0
-langchain-anthropic>=0.3.0
 langchain-google-genai>=2.0.0
 langchain-groq>=0.2.0
-langchain-ollama>=0.2.0

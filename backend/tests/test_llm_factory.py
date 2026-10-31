@@ -12,13 +12,14 @@ class LLMFactoryTests(unittest.TestCase):
         with (
             patch.object(settings, "LLM_MODEL", None),
             patch.object(settings, "GROQ_API_KEY", "test-groq-key"),
+            patch.object(settings, "GROK_LLM_API_KEY", None),
             patch("app.core.llm.init_chat_model") as init_chat_model,
         ):
             model = get_llm(provider="groq")
 
         self.assertIs(model, init_chat_model.return_value)
         init_chat_model.assert_called_once_with(
-            model="gemma2-9b-it",
+            model="gemma-4-26b-a4b-it",
             model_provider="groq",
             temperature=0.0,
             api_key="test-groq-key",
@@ -38,7 +39,10 @@ class LLMFactoryTests(unittest.TestCase):
         self.assertEqual(init_chat_model.call_args.kwargs["api_key"], "test-google-key")
 
     def test_missing_credentials_and_unknown_provider_are_explicit(self):
-        with patch.object(settings, "GROQ_API_KEY", None):
+        with (
+            patch.object(settings, "GROQ_API_KEY", None),
+            patch.object(settings, "GROK_LLM_API_KEY", None),
+        ):
             with self.assertRaisesRegex(RuntimeError, "GROQ_API_KEY is required"):
                 get_llm(provider="groq")
         with self.assertRaisesRegex(ValueError, "Unsupported LLM provider"):
@@ -46,17 +50,19 @@ class LLMFactoryTests(unittest.TestCase):
 
 
 class LLMGatewayTests(unittest.IsolatedAsyncioTestCase):
-    def test_auto_fallback_preserves_available_groq_and_google_genai_providers(self):
+    def test_auto_fallback_preserves_available_providers(self):
         gateway = LLMGateway()
         with (
             patch.object(settings, "LLM_PROVIDER", None),
-            patch.object(settings, "PRIMARY_LLM_PROVIDER", "groq"),
+            patch.object(settings, "PRIMARY_LLM_PROVIDER", "google_genai"),
             patch.object(settings, "LLM_FALLBACK_PROVIDER", None),
             patch.object(settings, "GROQ_API_KEY", "test-groq-key"),
-            patch.object(settings, "GEMINI_API_KEY", "test-gemini-key"),
+            patch.object(settings, "GROK_LLM_API_KEY", None),
+            patch.object(settings, "GEMINI_API_KEY", "test-google-key"),
+            patch.object(settings, "GOOGLE_AI_API_KEY", None),
         ):
             self.assertEqual(
-                gateway._provider_order(), ["groq", "google_genai"]
+                gateway._provider_order(), ["google_genai", "groq"]
             )
 
     async def test_falls_back_to_next_provider_and_parses_json(self):
@@ -67,7 +73,7 @@ class LLMGatewayTests(unittest.IsolatedAsyncioTestCase):
         gateway = LLMGateway()
 
         with (
-            patch.object(gateway, "_provider_order", return_value=["groq", "google_genai"]),
+            patch.object(gateway, "_provider_order", return_value=["google_genai", "groq"]),
             patch("app.services.llm_gateway.get_llm", side_effect=[primary, fallback]),
         ):
             result = await gateway.chat_completion(
@@ -85,7 +91,7 @@ class LLMGatewayTests(unittest.IsolatedAsyncioTestCase):
         gateway = LLMGateway()
 
         with (
-            patch.object(gateway, "_provider_order", return_value=["groq"]),
+            patch.object(gateway, "_provider_order", return_value=["google_genai"]),
             patch("app.services.llm_gateway.get_llm", return_value=model),
         ):
             result = await gateway.chat_completion(

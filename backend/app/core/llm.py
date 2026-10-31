@@ -15,8 +15,10 @@ SUPPORTED_PROVIDERS = {
 
 def _resolve_provider(provider: str | None) -> str:
     selected = (provider or settings.LLM_PROVIDER or settings.PRIMARY_LLM_PROVIDER).lower()
-    if selected == "google":
+    if selected in {"google", "gemini"}:
         selected = "google_genai"
+    elif selected == "grok":
+        selected = "groq"
     if selected not in SUPPORTED_PROVIDERS:
         raise ValueError(
             f"Unsupported LLM provider '{selected}'. "
@@ -31,8 +33,8 @@ def _resolve_model(model_name: str | None, provider: str) -> str:
     if settings.LLM_MODEL:
         return settings.LLM_MODEL
     defaults = {
-        "google_genai": settings.GEMINI_MODEL,
-        "groq": settings.GROQ_MODEL,
+        "google_genai": settings.GEMMA_MODEL or settings.GEMINI_MODEL,
+        "groq": settings.GROQ_MODEL or settings.GEMMA_MODEL,
     }
     return defaults[provider]
 
@@ -42,7 +44,7 @@ def _provider_options(provider: str) -> dict[str, Any]:
         api_key = settings.get_gemini_key
         if not api_key or api_key.startswith("your_"):
             raise RuntimeError(
-                "GEMINI_API_KEY or GOOGLE_AI_API_KEY is required for Google Gemma."
+                "GEMINI_API_KEY or GOOGLE_AI_API_KEY is required for Google AI."
             )
         return {"api_key": api_key}
     if provider == "groq":

@@ -19,10 +19,10 @@ You need:
 Keep database credentials and API keys in Render's environment settings.
 Do not commit them to this repository.
 
-The shared chat-model factory supports `openai`, `anthropic`, `google_genai`,
-`groq`, and `ollama`. Set `LLM_PROVIDER` to override `PRIMARY_LLM_PROVIDER`,
-and optionally set `LLM_MODEL` or `LLM_FALLBACK_PROVIDER`. Provider-specific
-model defaults and API keys are documented in `.env.example`.
+The shared chat-model factory supports `google_genai` and `groq` targeting
+Google's Gemma 4 (`gemma-4-26b-a4b-it`). Set `LLM_PROVIDER` to override
+`PRIMARY_LLM_PROVIDER`, and optionally set `LLM_MODEL` or `LLM_FALLBACK_PROVIDER`.
+Provider-specific model defaults and API keys are documented in `.env.example`.
 
 ## Create the Render service
 

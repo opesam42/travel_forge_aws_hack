@@ -23,21 +23,20 @@ class Settings(BaseSettings):
     AUTH_COOKIE_SECURE: Optional[bool] = None
     AUTH_COOKIE_SAMESITE: Optional[Literal["lax", "strict", "none"]] = None
 
-    # AI Providers
-    OPENAI_API_KEY: Optional[str] = None
-    ANTHROPIC_API_KEY: Optional[str] = None
+    # AI Providers (Gemma 4 via Google AI & Groq)
     GOOGLE_AI_API_KEY: Optional[str] = None
     GEMINI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
     GROK_LLM_API_KEY: Optional[str] = None
 
     # Model Configuration
-    PRIMARY_LLM_PROVIDER: str = "groq"  # "groq" primary with gemini fallback
+    PRIMARY_LLM_PROVIDER: str = "google_genai"  # "google_genai" primary with "groq" fallback
     LLM_PROVIDER: Optional[str] = None
     LLM_MODEL: Optional[str] = None
     LLM_FALLBACK_PROVIDER: Optional[str] = None
-    GEMINI_MODEL: str = "gemma-2-9b-it"
-    GROQ_MODEL: str = "gemma2-9b-it"
+    GEMMA_MODEL: str = "gemma-4-26b-a4b-it"
+    GEMINI_MODEL: str = "gemma-4-26b-a4b-it"
+    GROQ_MODEL: str = "gemma-4-26b-a4b-it"
 
     @property
     def get_gemini_key(self) -> Optional[str]:
@@ -77,8 +76,8 @@ class Settings(BaseSettings):
         return "none" if self.secure_auth_cookie else "lax"
 
     # LLM
-    CHAT_MODEL: str = "gemma2-9b-it"
-    AUDIT_MODEL: str = "gemma-2-9b-it"
+    CHAT_MODEL: str = "gemma-4-26b-a4b-it"
+    AUDIT_MODEL: str = "gemma-4-26b-a4b-it"
     RAG_TOP_K: int = 5                  # How many chunks to retrieve per query
 
     class Config:

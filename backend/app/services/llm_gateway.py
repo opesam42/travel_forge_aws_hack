@@ -50,10 +50,10 @@ class LLMGateway:
         primary = (
             settings.LLM_PROVIDER or settings.PRIMARY_LLM_PROVIDER or "google_genai"
         ).lower()
-        if primary == "gemini":
+        if primary in {"gemini", "google"}:
             primary = "google_genai"
-        elif primary == "google":
-            primary = "google_genai"
+        elif primary == "grok":
+            primary = "groq"
         if primary not in SUPPORTED_PROVIDERS:
             raise ValueError(
                 f"Unsupported LLM provider '{primary}'. "
@@ -65,6 +65,8 @@ class LLMGateway:
             fallback = fallback.lower()
             if fallback in {"gemini", "google"}:
                 fallback = "google_genai"
+            elif fallback == "grok":
+                fallback = "groq"
             if fallback not in SUPPORTED_PROVIDERS:
                 raise ValueError(
                     f"Unsupported LLM fallback provider '{fallback}'. "
@@ -79,7 +81,7 @@ class LLMGateway:
             candidates = [preferred] if preferred else []
             candidates.extend(
                 provider
-                for provider in ("groq", "google_genai")
+                for provider in ("google_genai", "groq")
                 if provider not in candidates and self._has_credentials(provider)
             )
         return [primary] + [
