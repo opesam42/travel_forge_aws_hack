@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f6f3" />
+    <title>TravelForge — Case workspace</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+    <script defer src="/static/alpine.min.js"></script>
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <div x-data="portal" x-init="init()">
+      <div class="toast" :class="{ 'visible': toast }" role="status" aria-live="polite" x-text="toast"></div>
+      <main class="auth-screen" x-show="!user" x-cloak>
+        <section class="auth-brand">
+          <a class="brand brand-light" href="/" aria-label="TravelForge home">
+            <span class="brand-mark">T</span>
+            <span>travelforge</span>
+          </a>
+          <div class="auth-brand-copy">
+            <p class="eyebrow">YOUR TRAVEL, WELL PREPARED</p>
+            <h1>Every detail,<br />in one place.</h1>
+            <p>Prepare your application with a clear case file, helpful guidance, and human review.</p>
+          </div>
+          <p class="auth-footnote">TravelForge supports preparation. Visa decisions are made only by the relevant authority.</p>
+        </section>
+        <section class="auth-panel">
+          <div class="auth-card">
+            <p class="eyebrow">WELCOME TO TRAVELFORGE</p>
+            <h2 x-text="authMode === 'signup' ? 'Create your account' : 'Sign in to your account'"></h2>
+            <p class="muted" x-text="authMode === 'signup' ? 'Create an account to start and manage your travel cases.' : 'Pick up where you left off with your travel case.'"></p>
+            <form class="form-stack" @submit.prevent="submitAuth">
+              <label x-show="authMode === 'signup'" x-cloak>
+                Full name
+                <input x-model.trim="auth.name" name="name" autocomplete="name" maxlength="120" :required="authMode === 'signup'" />
+              </label>
+              <label>
+                Email address
+                <input x-model.trim="auth.email" name="email" type="email" autocomplete="email" required maxlength="320" />
+              </label>
+              <label>
+                Password
+                <input x-model="auth.password" name="password" type="password" :autocomplete="authMode === 'signup' ? 'new-password' : 'current-password'" required :minlength="authMode === 'signup' ? 12 : 1" maxlength="128" />
+                <span class="field-help" x-show="authMode === 'signup'">Use at least 12 characters.</span>
+              </label>
+              <p class="form-error" role="alert" x-text="authError"></p>
+              <button class="button button-primary button-wide" type="submit" :disabled="busy" x-text="busy ? 'Please wait…' : authMode === 'signup' ? 'Create account' : 'Sign in'"></button>
+            </form>
+            <p class="auth-switch">
+              <span x-text="authMode === 'signup' ? 'Already have an account?' : 'New to TravelForge?'"></span>
+              <button class="text-button" type="button" @click="toggleAuthMode" x-text="authMode === 'signup' ? 'Sign in' : 'Create an account'"></button>
+            </p>
+          </div>
+        </section>
+      </main>
+
+      <div class="portal" x-show="user" x-cloak>
+        <aside class="sidebar">
+          <a class="brand" href="/" aria-label="TravelForge home">
+            <span class="brand-mark">T</span>
+            <span>travelforge</span>
+          </a>
+          <div class="sidebar-section">
+            <p class="sidebar-label">WORKSPACE</p>
+            <button class="nav-item active" type="button" @click="goHome">
+              <span class="nav-icon">▦</span><span x-text="isStaff ? 'Review queue' : 'My applications'"></span>
+            </button>
+            <button class="nav-item" type="button" x-show="!isStaff" @click="showCreate">
+              <span class="nav-icon">＋</span>Start an application
+            </button>
+          </div>
+          <div class="sidebar-bottom">
+            <div class="help-card" x-show="!isStaff">
+              <span class="help-icon">i</span>
+              <p><strong>Need a hand?</strong><br />Ask your case chat for guidance.</p>
+            </div>
+            <div class="user-menu">
+              <span class="avatar" x-text="(user?.name || user?.email || 'T').charAt(0).toUpperCase()"></span>
+              <span class="user-meta"><strong x-text="user?.name || 'Traveler'"></strong><small x-text="user?.email"></small></span>
+              <button class="icon-button" type="button" aria-label="Sign out" title="Sign out" @click="logout">↗</button>
+            </div>
+          </div>
+        </aside>
+
+        <main class="main-content">
+          <header class="topbar">
+            <div>
+              <p class="eyebrow">TRAVELFORGE / CASE DESK</p>
+              <h1 x-text="pageTitle"></h1>
+            </div>
+            <button class="button button-primary" type="button" x-show="!isStaff && view !== 'create'" @click="showCreate"><span>＋</span>New application</button>
+          </header>
+          <div class="banner banner-error" role="alert" x-show="globalError" x-text="globalError"></div>
+
+          <section class="view" x-show="view === 'cases'">
+            <template x-if="applications.length === 0">
+              <div class="empty-state"><div>
+                <span class="empty-icon">✦</span>
+                <h2>Your travel workspace starts here</h2>
+                <p>Create an application to organize your details, documents, review notes, and a conversation tied to your case.</p>
+                <button class="button button-primary" type="button" @click="showCreate">＋ Start an application</button>
+              </div></div>
+            </template>
+            <template x-if="applications.length > 0">
+              <div>
+                <div class="section-heading">
+                  <div><h2>Your cases</h2><p>Each application has its own saved profile and chat.</p></div>
+                  <span class="muted" x-text="`${applications.length} ${applications.length === 1 ? 'case' : 'cases'}`"></span>
+                </div>
+                <div class="case-grid">
+                  <template x-for="application in applications" :key="application.id">
+                    <article class="case-card">
+                      <div class="case-card-top"><span class="eyebrow">APPLICATION</span><span class="status-pill" :class="statusClass(application.stage)" x-text="humanize(application.stage)"></span></div>
+                      <div class="case-title-row"><h3 x-text="humanize(application.visa_type)"></h3></div>
+                      <p class="case-destination" x-text="application.destination || 'Destination not set'"></p>
+                      <div class="case-card-bottom">
+                        <span x-text="`${application.documents?.length || 0} documents${application.latest_audit?.discrepancies?.length ? ` · ${application.latest_audit.discrepancies.length} review items` : ''}`"></span>
+                        <button class="case-open" type="button" @click="openApplication(application.id)">Open case →</button>
+                      </div>
+                    </article>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </section>
+
+          <section class="view" x-show="view === 'staff'">
+            <template x-if="!staffCase">
+              <div>
+                <div class="section-heading">
+                  <div><h2 x-text="user?.user_type === 'admin' ? 'All agency cases' : 'Cases assigned to you'"></h2><p>Internal preparation and review only. Visa decisions remain with the relevant authority.</p></div>
+                  <div class="queue-toolbar">
+                    <select x-model="staffFilter" aria-label="Filter cases">
+                      <option value="all">All cases</option>
+                      <option value="documents">Documents need review</option>
+                      <option value="audit">Audit needs review</option>
+                      <option value="unassigned" x-show="user?.user_type === 'admin'">Unassigned</option>
+                    </select>
+                    <span class="muted" x-text="`${filteredStaffCases.length} cases`"></span>
+                  </div>
+                </div>
+                <template x-if="filteredStaffCases.length">
+                  <div class="queue-table-wrap">
+                    <table class="queue-table">
+                      <thead><tr><th>Applicant / route</th><th>Case stage</th><th>Documents</th><th>Internal review</th><th x-show="user?.user_type === 'admin'">Assigned staff</th><th></th></tr></thead>
+                      <tbody>
+                        <template x-for="item in filteredStaffCases" :key="item.application_id">
+                          <tr>
+                            <td><span class="queue-applicant" x-text="item.applicant_name"></span><span class="queue-email" x-text="`${item.applicant_email} · ${humanize(item.visa_type)}`"></span></td>
+                            <td><span class="status-pill" :class="statusClass(item.stage)" x-text="humanize(item.stage)"></span></td>
+                            <td><span class="status-pill status-amber" x-show="item.pending_document_count" x-text="`${item.pending_document_count} pending`"></span><span x-show="!item.pending_document_count">Up to date</span></td>
+                            <td x-text="humanize(item.latest_review_outcome || item.audit_status || 'Not reviewed')"></td>
+                            <td x-show="user?.user_type === 'admin'" x-text="item.assigned_staff_name || 'Unassigned'"></td>
+                            <td><button class="queue-open" type="button" @click="openStaffCase(item.application_id)">Review →</button></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                </template>
+                <div class="empty-state" x-show="!filteredStaffCases.length"><div>
+                  <span class="empty-icon">✓</span><h2 x-text="user?.user_type === 'admin' ? 'No cases match this filter' : 'No cases assigned yet'"></h2>
+                  <p x-text="user?.user_type === 'admin' ? 'Try another queue filter or assign a case to a staff member.' : 'An administrator can assign cases to your staff account.'"></p>
+                </div></div>
+              </div>
+            </template>
+
+            <template x-if="staffCase">
+              <div>
+                <div class="section-heading">
+                  <div><button class="text-button" type="button" @click="loadStaffQueue">← Review queue</button><h2 style="margin-top:10px"><span x-text="staffCase.applicant_name"></span> · <span x-text="humanize(staffCase.case.visa_type)"></span></h2><p><span x-text="staffCase.applicant_email"></span> · <span x-text="staffCase.case.destination || 'Destination not set'"></span></p></div>
+                  <span class="status-pill status-amber" x-text="humanize(staffCase.case.stage)"></span>
+                </div>
+                <section class="panel" style="margin-bottom:14px" x-show="user?.user_type === 'admin'">
+                  <div class="panel-heading"><div><h2>Case assignment</h2><p>Assignment grants staff review access; it does not change applicant ownership.</p></div></div>
+                  <form class="assignment-control" @submit.prevent="saveStaffAssignment">
+                    <select x-model="assignment.staffId" aria-label="Assign to staff"><option value="">Unassigned</option><template x-for="staffUser in staffUsers" :key="staffUser.id"><option :value="staffUser.id" x-text="staffUser.name"></option></template></select>
+                    <input x-model="assignment.notes" placeholder="Optional assignment note" maxlength="2000" />
+                    <button class="button button-secondary button-small" type="submit" :disabled="busy">Save assignment</button>
+                  </form>
+                </section>
+                <div class="staff-detail-grid">
+                  <div class="case-main-column">
+                    <section class="panel">
+                      <div class="panel-heading"><div><h2>Applicant details</h2><p>Confirmed profile facts and chat suggestions remain separately labelled.</p></div></div>
+                      <div class="fact-list">
+                        <template x-for="[field, value] in Object.entries(staffCase.case.applicant_data?.intake || {})" :key="field"><div class="fact-row"><span class="fact-label" x-text="humanize(field)"></span><span class="fact-value" x-text="value"></span><span class="status-pill status-green">Applicant confirmed</span></div></template>
+                        <template x-for="[field, value] in Object.entries(staffCase.case.applicant_data?.proposed_intake || {})" :key="`proposed-${field}`"><div class="fact-row"><span class="fact-label" x-text="humanize(field)"></span><span class="fact-value" x-text="value"></span><span class="status-pill status-amber">Proposed</span></div></template>
+                      </div>
+                    </section>
+                    <section class="panel">
+                      <div class="panel-heading"><div><h2>Documents</h2><p>Agency review is separate from the applicant’s confirmation of OCR values.</p></div></div>
+                      <div class="document-list">
+                        <template x-for="document in staffCase.case.documents" :key="document.id">
+                          <article class="document-card">
+                            <div class="document-card-head"><div><strong x-text="humanize(document.doc_type)"></strong><small x-text="`${document.original_filename} · ${humanize(document.review_status)}`"></small></div><span class="status-pill" :class="document.review_status === 'pending_review' ? 'status-amber' : 'status-green'" x-text="humanize(document.review_status)"></span></div>
+                            <div class="document-fields"><template x-for="[field, value] in Object.entries(document.extracted_data || {})" :key="field"><div><span class="fact-label" x-text="humanize(field)"></span><div class="fact-value" x-text="value"></div></div></template></div>
+                            <div class="staff-document-review" x-show="document.review_status === 'pending_review'"><span>Staff review does not change applicant review status.</span><div><button class="button button-secondary button-small" type="button" @click="saveStaffDocumentReview(document, 'needs_clarification')">Request clarification</button> <button class="button button-primary button-small" type="button" @click="saveStaffDocumentReview(document, 'reviewed')">Mark reviewed</button></div></div>
+                            <template x-for="activity in staffCase.activity.filter(item => item.document_id === document.id)" :key="activity.id"><p class="field-help">Agency review: <span x-text="humanize(activity.outcome)"></span><span x-show="activity.notes" x-text="` — ${activity.notes}`"></span></p></template>
+                          </article>
+                        </template>
+                        <p class="muted" x-show="!staffCase.case.documents?.length">No documents uploaded.</p>
+                      </div>
+                    </section>
+                    <section class="panel">
+                      <div class="panel-heading"><div><h2>Internal audit</h2><p>Rule results are system findings, not an agency or visa decision.</p></div></div>
+                      <div class="audit-result" x-show="staffCase.case.latest_audit">
+                        <span class="status-pill status-amber" x-text="humanize(staffCase.case.latest_audit?.status)"></span>
+                        <template x-for="item in staffCase.case.latest_audit?.discrepancies || []" :key="item.rule_id || item.field"><div class="audit-item"><strong x-text="humanize(item.rule_id || item.field || 'Finding')"></strong><p x-text="item.detail || item.message || JSON.stringify(item)"></p></div></template>
+                        <template x-for="item in staffCase.case.latest_audit?.rule_results || []" :key="item.rule_id"><div class="audit-item"><strong><span x-text="humanize(item.rule_id)"></span> · <span x-text="humanize(item.status)"></span></strong><p x-text="item.detail || item.reason || ''"></p></div></template>
+                        <div class="audit-sources"><template x-for="(source, index) in staffCase.case.latest_audit?.retrieved_rules || []" :key="index"><span class="source-chip" x-text="source.source_name || source.source"></span></template></div>
+                      </div>
+                      <p class="muted" x-show="!staffCase.case.latest_audit">No internal audit has been run.</p>
+                    </section>
+                  </div>
+                  <div class="case-side-column">
+                    <section class="panel">
+                      <div class="panel-heading"><div><h2>Record agency review</h2><p>This does not submit the application or indicate visa approval.</p></div></div>
+                      <form class="staff-review-form" @submit.prevent="saveStaffReview">
+                        <label>Outcome<select x-model="review.outcome"><option value="needs_further_review">Needs further review</option><option value="needs_changes">Applicant changes requested</option><option value="ready_for_agency_handoff">Ready for agency handoff</option></select></label>
+                        <label>Review notes<textarea x-model="review.notes" maxlength="2000" placeholder="Summarize what was checked and any next steps…"></textarea></label>
+                        <button class="button button-primary button-small" type="submit" :disabled="busy">Save agency review</button>
+                      </form>
+                    </section>
+                    <section class="panel">
+                      <div class="panel-heading"><div><h2>Activity history</h2><p>Persisted assignment and review events.</p></div></div>
+                      <div class="timeline"><template x-for="activity in staffCase.activity" :key="activity.id"><div class="timeline-item"><span class="timeline-dot"></span><div class="timeline-copy"><strong><span x-text="humanize(activity.event_type)"></span>: <span x-text="humanize(activity.outcome)"></span></strong><small><span x-text="activity.actor_name"></span> · <span x-text="formatDate(activity.created_at)"></span><span x-show="activity.assigned_staff_name" x-text="` · Assigned to ${activity.assigned_staff_name}`"></span></small><small x-show="activity.notes" x-text="activity.notes"></small></div></div></template></div>
+                      <p class="muted" x-show="!staffCase.activity.length">No agency activity has been recorded.</p>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </section>
+
+          <section class="view" x-show="view === 'create'">
+            <div class="create-card">
+              <p class="eyebrow">NEW CASE</p><h2>Tell us what you’re planning</h2><p>Start with the visa route and destination. You can add travel details and documents inside your case workspace.</p>
+              <form class="form-stack" @submit.prevent="submitCreate">
+                <div class="form-row">
+                  <label>Visa route<select x-model="newApplication.visa_type"><option value="uk_standard_visitor">UK Standard Visitor</option><option value="uk_skilled_worker">UK Skilled Worker</option><option value="other">Other / not sure yet</option></select></label>
+                  <label>Destination<input x-model.trim="newApplication.destination" maxlength="100" /></label>
+                </div>
+                <p class="form-error" role="alert" x-text="formError"></p>
+                <div class="form-actions"><button class="button button-secondary" type="button" @click="loadApplications">Cancel</button><button class="button button-primary" type="submit" :disabled="busy">Create case</button></div>
+              </form>
+            </div>
+          </section>
+
+          <section class="view" x-show="view === 'case' && application">
+            <div class="section-heading">
+              <div><button class="text-button" type="button" @click="loadApplications">← All applications</button><h2 style="margin-top:10px" x-text="humanize(application?.visa_type)"></h2><p><span x-text="application?.destination || 'Destination not set'"></span> · Updated <span x-text="formatDate(application?.updated_at)"></span></p></div>
+              <span class="status-pill" :class="statusClass(application?.stage)" x-text="humanize(application?.stage)"></span>
+            </div>
+            <div class="case-layout">
+              <div class="case-main-column">
+                <section class="panel">
+                  <div class="panel-heading"><div><h2>Case overview</h2><p>Application ID <span x-text="application?.id"></span></p></div></div>
+                  <div class="case-summary">
+                    <div class="summary-item"><span>Case stage</span><strong x-text="humanize(application?.stage)"></strong></div>
+                    <div class="summary-item"><span>Documents</span><strong x-text="`${application?.documents?.length || 0} on file`"></strong></div>
+                    <div class="summary-item"><span>Review state</span><strong x-text="humanize(application?.latest_audit?.status || 'Not run')"></strong></div>
+                  </div>
+                  <div class="info-note">This workspace helps organize preparation and internal review. Official forms, payments, biometric appointments, submission, and visa decisions remain with the applicant and official services.</div>
+                </section>
+                <section class="panel">
+                  <div class="panel-heading"><div><h2>Applicant details</h2><p>Chat suggestions remain unconfirmed until the applicant confirms them.</p></div></div>
+                  <div class="fact-list">
+                    <template x-for="[field, value] in Object.entries(application?.applicant_data?.intake || {})" :key="field"><div class="fact-row"><span class="fact-label" x-text="humanize(field)"></span><span class="fact-value" x-text="value"></span><span class="status-pill status-green">Confirmed</span></div></template>
+                    <template x-for="[field, value] in Object.entries(application?.applicant_data?.proposed_intake || {})" :key="`proposed-${field}`"><div class="fact-row"><span class="fact-label" x-text="humanize(field)"></span><input x-model="intakeEdits[field]" maxlength="200" /><button class="button button-secondary button-small" type="button" @click="confirmFact(field)">Confirm</button></div></template>
+                    <p class="muted" x-show="!Object.keys(application?.applicant_data?.intake || {}).length && !Object.keys(application?.applicant_data?.proposed_intake || {}).length">No applicant details yet. Share a few details in the case chat to begin.</p>
+                  </div>
+                </section>
+                <section class="panel">
+                  <div class="panel-heading"><div><h2>Documents</h2><p>OCR suggestions are unverified until reviewed by a person.</p></div><span class="status-pill" x-text="`${application?.documents?.length || 0} saved`"></span></div>
+                  <div class="document-list">
+                    <template x-for="document in application?.documents || []" :key="document.id">
+                      <article class="document-card">
+                        <div class="document-card-head"><div><strong x-text="humanize(document.doc_type)"></strong><small><span x-text="document.original_filename"></span> · Added <span x-text="formatDate(document.created_at)"></span></small></div><span class="status-pill" :class="document.review_status === 'pending_review' ? 'status-amber' : document.review_status === 'reviewed' ? 'status-green' : ''" x-text="humanize(document.review_status)"></span></div>
+                        <div class="document-fields"><template x-for="[field, value] in Object.entries(document.extracted_data || {})" :key="field"><label x-show="!['document_id', 'verification_status'].includes(field)"><span x-text="humanize(field)"></span><input x-model="(documentEdits[document.id] = documentEdits[document.id] || {})[field]" :disabled="document.review_status !== 'pending_review'" /></label></template></div>
+                        <div class="document-card-actions" x-show="document.review_status === 'pending_review'"><button class="button button-danger button-small" type="button" @click="reviewDocument(document, 'reject')">Reject</button><button class="button button-primary button-small" type="button" @click="reviewDocument(document, 'correct')">Confirm details</button></div>
+                        <p class="field-help" x-show="document.review_status !== 'pending_review'">Applicant review records confirmation of extracted values; it does not verify physical document authenticity.</p>
+                      </article>
+                    </template>
+                    <p class="muted" x-show="!application?.documents?.length">No documents uploaded yet.</p>
+                  </div>
+                  <form class="upload-form" @submit.prevent="uploadDocument">
+                    <label>Document type<select x-model="upload.doc_type"><option value="passport">Passport</option><option value="bank_statement">Bank statement</option></select></label>
+                    <label>Choose document<input x-ref="documentFile" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" required /></label>
+                    <button class="button button-secondary button-small" type="submit" :disabled="busy">Upload</button>
+                  </form>
+                </section>
+                <section class="panel">
+                  <div class="panel-heading"><div><h2>Preparation review</h2><p>Internal rule checks and supporting policy references.</p></div><span class="status-pill" :class="statusClass(application?.latest_audit?.status)" x-show="application?.latest_audit" x-text="humanize(application?.latest_audit?.status)"></span></div>
+                  <div class="info-note" x-show="!application?.latest_audit">This review supports preparation only. It is not a visa decision; missing or unverified information may require human review.</div>
+                  <div class="audit-result" x-show="application?.latest_audit">
+                    <div class="audit-summary"><strong>Internal assessment only.</strong> This is not a visa decision or a guarantee of approval. Last run: <span x-text="formatDate(application?.latest_audit?.calculated_metrics?.audit_date)"></span>.</div>
+                    <template x-for="(issue, index) in application?.latest_audit?.discrepancies || []" :key="index"><div class="audit-item"><strong x-text="humanize(issue.rule_id || issue.field || 'Review item')"></strong><p x-text="issue.detail || issue.message || JSON.stringify(issue)"></p></div></template>
+                    <template x-for="item in application?.latest_audit?.rule_results || []" :key="item.rule_id"><div class="audit-item"><strong><span x-text="humanize(item.rule_id)"></span> · <span x-text="humanize(item.status)"></span></strong><p x-text="item.detail || item.reason || ''"></p></div></template>
+                    <div><p class="eyebrow">RETRIEVED SOURCES</p><div class="audit-sources"><template x-for="(source, index) in application?.latest_audit?.retrieved_rules || []" :key="index"><span class="source-chip" x-text="source.source_name || source.source"></span></template></div></div>
+                    <div class="info-note"><template x-for="(assumption, index) in application?.latest_audit?.assumptions || []" :key="index"><span x-text="`${assumption}${index < application.latest_audit.assumptions.length - 1 ? '\n' : ''}`"></span></template></div>
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="button button-primary button-small" type="button" @click="runAudit" :disabled="busy" x-text="application?.latest_audit ? 'Run review again' : 'Run case review'"></button></div>
+                </section>
+                <section class="panel">
+                  <div class="panel-heading"><div><h2>Recent activity</h2><p>From saved case and conversation records.</p></div></div>
+                  <div class="timeline"><template x-for="event in clientTimeline" :key="event.id"><div class="timeline-item"><span class="timeline-dot"></span><div class="timeline-copy"><strong x-text="event.label"></strong><small><span x-text="formatDate(event.date)"></span><span x-show="event.detail" x-text="` · ${event.detail}`"></span></small></div></div></template></div>
+                </section>
+              </div>
+              <div class="case-side-column">
+                <section class="panel chat-panel">
+                  <div class="chat-header"><div class="chat-title"><span class="chat-orb">✦</span><span><strong>Case assistant</strong><small>Conversation linked to this application</small></span></div><span class="chat-status">Ready</span></div>
+                  <div class="chat-messages" x-ref="chatMessages" aria-live="polite">
+                    <div class="chat-welcome" x-show="!messages.length"><span class="chat-orb">✦</span><strong>Let’s prepare your case</strong><p>Ask a question or tell me about your travel plans. I can help organize details and identify what may need review.</p></div>
+                    <template x-for="(message, index) in messages" :key="message.id || `${message.role}-${index}`"><article class="message" :class="message.role === 'user' ? 'user' : 'assistant'"><span x-text="message.content"></span><time class="message-time" x-show="message.created_at" x-text="formatTime(message.created_at)"></time></article></template>
+                    <div class="loading" x-show="sending"><span class="spinner"></span>Preparing a response…</div>
+                  </div>
+                  <form class="chat-composer" @submit.prevent="sendChat">
+                    <textarea x-model="chatDraft" maxlength="10000" placeholder="Ask about your case or share a detail…" required @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); sendChat(); }"></textarea>
+                    <div class="composer-bottom"><small>Enter to send · Shift + Enter for a new line</small><button class="button button-primary button-small" type="submit" :disabled="sending">Send ↑</button></div>
+                  </form>
+                  <p class="chat-privacy">Guidance is not legal advice. Verify requirements with official sources.</p>
+                </section>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>
