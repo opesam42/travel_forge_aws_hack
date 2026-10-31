@@ -8,11 +8,8 @@ from langchain_core.language_models import BaseChatModel
 from app.core.config import settings
 
 SUPPORTED_PROVIDERS = {
-    "openai",
-    "anthropic",
     "google_genai",
     "groq",
-    "ollama",
 }
 
 
@@ -34,33 +31,18 @@ def _resolve_model(model_name: str | None, provider: str) -> str:
     if settings.LLM_MODEL:
         return settings.LLM_MODEL
     defaults = {
-        "openai": settings.CHAT_MODEL,
-        "anthropic": settings.ANTHROPIC_MODEL,
         "google_genai": settings.GEMINI_MODEL,
         "groq": settings.GROQ_MODEL,
-        "ollama": settings.OLLAMA_MODEL,
     }
     return defaults[provider]
 
 
 def _provider_options(provider: str) -> dict[str, Any]:
-    if provider == "openai":
-        if not settings.OPENAI_API_KEY or settings.OPENAI_API_KEY.startswith("your_"):
-            raise RuntimeError("OPENAI_API_KEY is required for the OpenAI provider.")
-        return {"api_key": settings.OPENAI_API_KEY}
-    if provider == "anthropic":
-        if not settings.ANTHROPIC_API_KEY or settings.ANTHROPIC_API_KEY.startswith(
-            "your_"
-        ):
-            raise RuntimeError(
-                "ANTHROPIC_API_KEY is required for the Anthropic provider."
-            )
-        return {"api_key": settings.ANTHROPIC_API_KEY}
     if provider == "google_genai":
         api_key = settings.get_gemini_key
         if not api_key or api_key.startswith("your_"):
             raise RuntimeError(
-                "GEMINI_API_KEY or GOOGLE_AI_API_KEY is required for Google Gemini."
+                "GEMINI_API_KEY or GOOGLE_AI_API_KEY is required for Google Gemma."
             )
         return {"api_key": api_key}
     if provider == "groq":
@@ -68,8 +50,6 @@ def _provider_options(provider: str) -> dict[str, Any]:
         if not api_key or api_key.startswith("your_"):
             raise RuntimeError("GROQ_API_KEY is required for the Groq provider.")
         return {"api_key": api_key}
-    if provider == "ollama":
-        return {"base_url": settings.OLLAMA_BASE_URL}
     return {}
 
 

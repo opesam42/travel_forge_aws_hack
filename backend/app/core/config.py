@@ -36,12 +36,8 @@ class Settings(BaseSettings):
     LLM_PROVIDER: Optional[str] = None
     LLM_MODEL: Optional[str] = None
     LLM_FALLBACK_PROVIDER: Optional[str] = None
-    GEMINI_MODEL: str = "gemini-1.5-flash"
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
-    FALLBACK_GROQ_MODEL: str = "llama-3.1-8b-instant"
-    ANTHROPIC_MODEL: str = "claude-3-5-sonnet-20241022"
-    OLLAMA_MODEL: str = "llama3.2"
-    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    GEMINI_MODEL: str = "gemma-2-9b-it"
+    GROQ_MODEL: str = "gemma2-9b-it"
 
     @property
     def get_gemini_key(self) -> Optional[str]:
@@ -81,8 +77,8 @@ class Settings(BaseSettings):
         return "none" if self.secure_auth_cookie else "lax"
 
     # LLM
-    CHAT_MODEL: str = "gpt-4o"
-    AUDIT_MODEL: str = "gemini-1.5-flash"
+    CHAT_MODEL: str = "gemma2-9b-it"
+    AUDIT_MODEL: str = "gemma-2-9b-it"
     RAG_TOP_K: int = 5                  # How many chunks to retrieve per query
 
     class Config:

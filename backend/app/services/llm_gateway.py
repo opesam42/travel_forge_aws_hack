@@ -40,8 +40,6 @@ class LLMGateway:
     @staticmethod
     def _has_credentials(provider: str) -> bool:
         credentials = {
-            "openai": settings.OPENAI_API_KEY,
-            "anthropic": settings.ANTHROPIC_API_KEY,
             "google_genai": settings.get_gemini_key,
             "groq": settings.get_groq_key,
         }
@@ -77,13 +75,11 @@ class LLMGateway:
             preferred = {
                 "google_genai": "groq",
                 "groq": "google_genai",
-                "openai": "anthropic",
-                "anthropic": "openai",
             }.get(primary)
             candidates = [preferred] if preferred else []
             candidates.extend(
                 provider
-                for provider in ("groq", "google_genai", "openai", "anthropic")
+                for provider in ("groq", "google_genai")
                 if provider not in candidates and self._has_credentials(provider)
             )
         return [primary] + [
