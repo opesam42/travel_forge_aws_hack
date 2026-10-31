@@ -1,15 +1,14 @@
 # Frontend Integration Guide
 
 This guide documents the API routes currently registered by the backend and
-how a browser frontend should call them. The running API's OpenAPI document at
+how the browser frontend calls them. The running API's OpenAPI document at
 `/openapi.json` and interactive docs at `/docs` are the final authority if a
 schema changes.
 
 ## Base URL and setup
 
-The backend serves the Alpine.js component-based HTML/CSS/JavaScript case
-workspace from `/` and its assets, including a locally vendored Alpine runtime,
-from `/static/`. With this built-in portal, the API is same-origin
+The backend serves the vanilla JavaScript HTML/CSS/JavaScript case workspace
+from `/` and its assets from `/static/`. With this built-in portal, the API is same-origin
 and no separate frontend server or API URL configuration is needed. A
 separately hosted frontend can set its API base URL to the backend origin only
 (no `/api` suffix):

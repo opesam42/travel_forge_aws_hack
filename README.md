@@ -32,7 +32,7 @@ There is no single tool that lets an agency **organize a case, extract and valid
 - **LangGraph** for agentic workflow orchestration across specialist nodes
 - **Deterministic Python rule evaluators** for structured, auditable pass/fail/needs-review decisions
 - **pgvector RAG** for policy context retrieval from trusted sources
-- **A plain HTML/Alpine.js frontend** served from the same FastAPI origin — no separate build step
+- **A vanilla JavaScript frontend** served from the same FastAPI origin — no separate build step or runtime framework
 
 The result is an end-to-end agency workflow: applicant intake → document OCR → specialist checks → caseworker review → manual handoff readiness — with clear boundaries between AI assistance and human decisions.
 
@@ -109,7 +109,7 @@ Specialist        Specialist
 | **Migrations** | Alembic |
 | **Embeddings** | MiniLM-L6-v2 (local ONNX, no external embedding API required) |
 | **Document parsing** | PyPDF2, python-docx, BeautifulSoup4 |
-| **Frontend** | Plain HTML5, CSS, Alpine.js (no build step) |
+| **Frontend** | Plain HTML5, CSS, vanilla JavaScript (no build step) |
 | **HTTP client** | httpx |
 
 ---
@@ -153,7 +153,7 @@ travel_forge_aws_hack/
         ├── data/
         │   ├── rules/               # Structured visa rule JSON fixtures
         │   └── raw_data/            # Travel and policy seed data
-        ├── static/                  # Frontend (HTML, CSS, Alpine.js)
+        ├── static/                  # Frontend (HTML, CSS, vanilla JavaScript)
         │   ├── index.html
         │   ├── app.js
         │   └── styles.css
@@ -293,7 +293,6 @@ The rule fixtures under `backend/app/data/rules/` are **synthetic demo data** us
 | [FastAPI](https://fastapi.tiangolo.com/) | Backend API framework |
 | [SQLModel](https://sqlmodel.tiangolo.com/) | ORM with Pydantic integration |
 | [pgvector](https://github.com/pgvector/pgvector) | PostgreSQL vector extension for RAG |
-| [Alpine.js](https://alpinejs.dev/) | Lightweight frontend reactivity |
 | [Sentence Transformers / MiniLM-L6-v2](https://www.sbert.net/) | Local embedding model |
 | [Groq](https://groq.com/) | Gemma 4 inference provider (fallback) |
 
