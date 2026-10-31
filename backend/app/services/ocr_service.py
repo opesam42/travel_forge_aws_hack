@@ -28,6 +28,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 _SANITIZE_VALUES = frozenset({"null", "none", "unknown", "n/a", ""})
+MAX_PDF_OCR_PAGES = 5
 
 
 def _sanitize(v: Any, *, is_number: bool = False) -> Any:
@@ -50,29 +51,68 @@ def extract_text_from_bytes(data: bytes, mime_type: str) -> str:
     """
     Run Tesseract OCR on the uploaded document bytes and return the raw text.
 
-    Supports JPEG, PNG, WEBP directly.  PDFs are rasterised to images first
-    via pdf2image (requires poppler-utils on the host).
+    Supports JPEG, PNG, WEBP directly. Searchable PDF text is read directly;
+    scanned PDFs are rasterised with pdf2image (requires poppler-utils).
     """
-    try:
-        import pytesseract
-        from PIL import Image
-    except ImportError:
-        logger.warning("pytesseract/Pillow not installed — OCR text extraction skipped")
-        return ""
-
     try:
         if mime_type == "application/pdf":
             try:
+                from PyPDF2 import PdfReader
+
+                pdf = PdfReader(io.BytesIO(data))
+                page_text = [(page.extract_text() or "").strip() for page in pdf.pages]
+                searchable_text = "\n\n".join(text for text in page_text if text)
+                if searchable_text:
+                    logger.debug(
+                        "Extracted searchable text from %d PDF pages (%d chars)",
+                        len(page_text),
+                        len(searchable_text),
+                    )
+                    return searchable_text
+                page_count = len(page_text)
+            except Exception as pdf_text_err:
+                logger.info("Searchable PDF text extraction unavailable: %s", pdf_text_err)
+                page_count = None
+
+            try:
+                import pytesseract
                 from pdf2image import convert_from_bytes
 
-                pages = convert_from_bytes(data, dpi=200)
+                pages = convert_from_bytes(
+                    data,
+                    dpi=200,
+                    first_page=1,
+                    last_page=min(page_count or MAX_PDF_OCR_PAGES, MAX_PDF_OCR_PAGES),
+                )
+                if page_count and page_count > MAX_PDF_OCR_PAGES:
+                    pages.extend(
+                        convert_from_bytes(
+                            data,
+                            dpi=200,
+                            first_page=page_count,
+                            last_page=page_count,
+                        )
+                    )
                 if not pages:
                     return ""
-                image = pages[0]
+                raw_text = "\n\n".join(
+                    pytesseract.image_to_string(image, timeout=20)
+                    for image in pages
+                )
+                logger.debug("Tesseract extracted %d chars from PDF", len(raw_text))
+                return raw_text.strip()
             except Exception as pdf_err:
-                logger.warning("PDF→image conversion failed: %s", pdf_err)
+                logger.warning("PDF text/OCR extraction failed: %s", pdf_err)
                 return ""
         else:
+            try:
+                import pytesseract
+                from PIL import Image
+            except ImportError:
+                logger.warning(
+                    "pytesseract/Pillow not installed — image OCR skipped"
+                )
+                return ""
             image = Image.open(io.BytesIO(data))
 
         raw_text: str = pytesseract.image_to_string(image, timeout=20)
@@ -90,7 +130,7 @@ def _build_passport_prompt(raw_text: str) -> str:
         "passport_number, full_name, expiry_date, issuing_country. "
         "Use empty string \"\" for any field that is not present or unreadable. "
         "Do NOT invent or guess values. Do NOT include any explanation.\n\n"
-        f"OCR TEXT:\n{raw_text[:4000]}\n\n"
+        f"OCR TEXT:\n{_bounded_document_text(raw_text)}\n\n"
         "Return JSON only."
     )
 
@@ -104,8 +144,21 @@ def _build_bank_statement_prompt(raw_text: str) -> str:
         "statement_period_days must be an integer (0 if not found). "
         "Use empty string \"\" for text fields that are missing. "
         "Do NOT invent or guess values. Do NOT include any explanation.\n\n"
-        f"OCR TEXT:\n{raw_text[:4000]}\n\n"
+        f"OCR TEXT:\n{_bounded_document_text(raw_text)}\n\n"
         "Return JSON only."
+    )
+
+
+def _bounded_document_text(raw_text: str, max_chars: int = 30000) -> str:
+    """Keep useful text from both the start and end of long statements."""
+    if len(raw_text) <= max_chars:
+        return raw_text
+    head_chars = max_chars * 3 // 4
+    tail_chars = max_chars - head_chars
+    return (
+        f"{raw_text[:head_chars]}\n\n"
+        "[Middle of document omitted]\n\n"
+        f"{raw_text[-tail_chars:]}"
     )
 
 
@@ -124,6 +177,21 @@ def _parse_json_from_llm_response(text: str) -> dict:
             return json.loads(text[start:end])
         except json.JSONDecodeError:
             pass
+    return {}
+
+
+def _fields_from_completion(result: Any, field_names: set[str]) -> dict[str, Any]:
+    """Accept the gateway's parsed JSON dict and older text-wrapped responses."""
+    if not isinstance(result, dict):
+        return {}
+    if field_names.intersection(result):
+        return result
+    for key in ("reply", "text", "content"):
+        value = result.get(key)
+        if isinstance(value, str):
+            parsed = _parse_json_from_llm_response(value)
+            if field_names.intersection(parsed):
+                return parsed
     return {}
 
 
@@ -154,8 +222,12 @@ async def extract_passport_fields(data: bytes, mime_type: str) -> dict[str, Any]
                 "Return only valid compact JSON. No prose, no markdown."
             ),
             user_message=prompt,
+            json_mode=True,
         )
-        raw = _parse_json_from_llm_response(result.get("reply", ""))
+        raw = _fields_from_completion(
+            result,
+            {"passport_number", "full_name", "expiry_date", "issuing_country"},
+        )
     except Exception as exc:
         logger.warning("Gemma passport parse failed: %s", exc)
         raw = {}
@@ -195,8 +267,12 @@ async def extract_bank_statement_fields(data: bytes, mime_type: str) -> dict[str
                 "Return only valid compact JSON. No prose, no markdown."
             ),
             user_message=prompt,
+            json_mode=True,
         )
-        raw = _parse_json_from_llm_response(result.get("reply", ""))
+        raw = _fields_from_completion(
+            result,
+            {"account_name", "bank_name", "closing_balance_ngn", "statement_period_days"},
+        )
     except Exception as exc:
         logger.warning("Gemma bank statement parse failed: %s", exc)
         raw = {}
