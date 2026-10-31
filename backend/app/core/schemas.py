@@ -35,6 +35,35 @@ class ChatActionResult(BaseModel):
     error: Optional[str] = None
 
 
+class ChoiceOption(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    label: str
+    value: str
+    action: Literal["send_message", "run_audit", "scroll_to_documents"] = "send_message"
+
+
+class DynamicChatControl(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+    type: Literal[
+        "single_choice",
+        "choice_list",
+        "confirmation_card",
+        "missing_field_prompt",
+    ]
+    id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
+    title: str = ""
+    description: Optional[str] = None
+    options: List[ChoiceOption] = Field(default_factory=list)
+    field_name: Optional[str] = None
+    field_label: Optional[str] = None
+    proposed_value: Optional[str] = None
+    placeholder: Optional[str] = None
+    input_type: Optional[str] = "text"
+
+
 class ChatResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -44,6 +73,7 @@ class ChatResponse(BaseModel):
     actions: List[ChatActionResult] = Field(default_factory=list)
     extracted_intent: Dict[str, Any] = Field(default_factory=dict)
     proposed_intake: Dict[str, str] = Field(default_factory=dict)
+    controls: List[DynamicChatControl] = Field(default_factory=list)
     stage: str = "intake"
 
 

@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 from sqlalchemy import CheckConstraint, Column, DateTime, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
 
@@ -74,6 +76,10 @@ class ChatMessage(SQLModel, table=True):
     session_id: str = Field(foreign_key="chat_sessions.session_id", index=True)
     role: str = Field(max_length=20)
     content: str = Field(sa_column=Column(Text, nullable=False))
+    meta: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSONB, nullable=False, server_default="{}"),
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         sa_column=Column(DateTime(timezone=True), nullable=False, index=True),

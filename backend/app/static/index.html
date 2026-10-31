@@ -267,7 +267,7 @@
                 </div>
               </section>
 
-              <section class="panel">
+              <section id="client-documents-panel" class="panel">
                 <div class="panel-heading"><div><h2>Documents</h2><p>OCR suggestions are unverified until reviewed by a person.</p></div><span id="document-count-pill" class="status-pill"></span></div>
                 <div id="client-documents" class="document-list"></div>
                 <p id="client-documents-empty" class="muted" hidden>No documents uploaded yet.</p>
@@ -379,7 +379,58 @@
     </template>
 
     <template id="tpl-chat-message">
-      <article class="message"><span data-field="content"></span><time class="message-time" data-field="time"></time></article>
+      <article class="message">
+        <div class="message-content" data-field="content"></div>
+        <div class="message-sources" data-field="sources" hidden></div>
+        <div class="message-controls" data-field="controls" hidden></div>
+        <time class="message-time" data-field="time"></time>
+      </article>
+    </template>
+
+    <template id="tpl-chat-source">
+      <a class="source-chip" data-field="link" target="_blank" rel="noopener noreferrer">
+        <span class="source-chip-badge" data-field="badge"></span>
+        <span class="source-chip-name" data-field="name"></span>
+      </a>
+    </template>
+
+    <template id="tpl-chat-control-choice">
+      <div class="chat-choice-group">
+        <span class="chat-control-title" data-field="title"></span>
+        <div class="chat-choice-list" data-field="options"></div>
+      </div>
+    </template>
+
+    <template id="tpl-chat-control-confirmation">
+      <div class="chat-control-card confirmation-card">
+        <div class="chat-control-header">
+          <span class="chat-control-badge">PROPOSED FACT</span>
+          <strong class="chat-control-label" data-field="label"></strong>
+        </div>
+        <p class="chat-control-desc" data-field="desc"></p>
+        <div class="chat-control-fact-box">
+          <span class="chat-fact-key" data-field="key"></span>
+          <strong class="chat-fact-val" data-field="value"></strong>
+        </div>
+        <div class="chat-control-actions">
+          <button type="button" class="btn btn-sm btn-primary chat-confirm-btn" data-action="confirm">Confirm Fact ✓</button>
+          <button type="button" class="btn btn-sm btn-ghost chat-dismiss-btn" data-action="dismiss">Dismiss</button>
+        </div>
+      </div>
+    </template>
+
+    <template id="tpl-chat-control-missing-field">
+      <div class="chat-control-card missing-field-card">
+        <div class="chat-control-header">
+          <span class="chat-control-badge badge-amber">MISSING FACT</span>
+          <strong class="chat-control-label" data-field="label"></strong>
+        </div>
+        <p class="chat-control-desc" data-field="desc"></p>
+        <div class="chat-control-input-group">
+          <input type="text" class="chat-control-input" data-field="input" />
+          <button type="button" class="btn btn-sm btn-primary chat-submit-btn" data-action="submit">Submit Fact</button>
+        </div>
+      </div>
     </template>
 
     <template id="tpl-staff-row">

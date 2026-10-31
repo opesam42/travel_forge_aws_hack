@@ -183,23 +183,37 @@ class AuditGraphTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result.status, "NEEDS_REVIEW")
         self.assertEqual(result.discrepancies[0]["field"], "active_rules")
 
-    def test_document_extraction_schemas_reject_extra_fields(self):
-        with self.assertRaises(ValueError):
-            PassportData(
-                passport_number="A12345678",
-                full_name="A Person",
-                expiry_date="2030-01-01",
-                issuing_country="NG",
-                account_balance=100.0,
-            )
+    def test_document_extraction_schemas_accept_valid_fields(self):
+        # Extra fields are silently ignored (extra="forbid" removed to avoid
+        # Gemini API schema conflicts). Valid construction must succeed.
+        p = PassportData(
+            passport_number="A12345678",
+            full_name="A Person",
+            expiry_date="2030-01-01",
+            issuing_country="NG",
+        )
+        self.assertEqual(p.passport_number, "A12345678")
 
-        with self.assertRaises(ValueError):
-            BankStatementData(
-                account_name="A Person",
-                bank_name="Example Bank",
-                closing_balance_ngn="1000",
-                statement_period_days=90,
-            )
+        b = BankStatementData(
+            account_name="A Person",
+            bank_name="Example Bank",
+            closing_balance_ngn="1000",
+            statement_period_days=90,
+        )
+        self.assertAlmostEqual(b.closing_balance_ngn, 1000.0)
+
+    def test_document_extraction_schemas_sanitize_null_strings(self):
+        # Field validators must strip null-like sentinel strings.
+        p = PassportData(
+            passport_number="null",
+            full_name="none",
+            expiry_date="N/A",
+            issuing_country="unknown",
+        )
+        self.assertEqual(p.passport_number, "")
+        self.assertEqual(p.full_name, "")
+        self.assertEqual(p.expiry_date, "")
+        self.assertEqual(p.issuing_country, "")
 
 
 class AuditEvaluationRouteTests(unittest.TestCase):

@@ -164,12 +164,38 @@ input:focus, select:focus, textarea:focus { border-color: #62a183; box-shadow: 0
 .chat-status { display: flex; align-items: center; gap: 5px; color: #5c7768; font-size: 9px; }
 .chat-status::before { width: 6px; height: 6px; border-radius: 50%; background: #4aa36e; content: ""; }
 .chat-messages { display: flex; flex: 1; flex-direction: column; gap: 12px; overflow: auto; padding: 16px; }
-.message { max-width: 92%; border-radius: 11px; padding: 10px 12px; font-size: 11px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message { max-width: 92%; border-radius: 11px; padding: 10px 12px; font-size: 11px; line-height: 1.65; overflow-wrap: anywhere; }
 .message.assistant { align-self: flex-start; border: 1px solid #edf0ec; border-top-left-radius: 3px; background: #f8faf7; }
-.message.user { align-self: flex-end; border-top-right-radius: 3px; background: var(--green); color: white; }
+.message.user { align-self: flex-end; border-top-right-radius: 3px; background: var(--green); color: white; white-space: pre-wrap; }
+.message-content { white-space: pre-wrap; }
 .message-time { display: block; margin-top: 7px; opacity: .65; font-size: 8px; }
 .message-sources { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
-.message-sources .source-chip { background: white; }
+.message-sources .source-chip { display: inline-flex; align-items: center; gap: 5px; background: white; border: 1px solid #dbe2dc; border-radius: 5px; padding: 4px 7px; font-size: 9px; color: #3a4b40; text-decoration: none; transition: background .15s, border-color .15s; }
+.message-sources .source-chip:hover { background: #eef3ef; border-color: #b1cdbb; }
+.source-chip-badge { font-size: 8px; font-weight: 700; color: var(--green); text-transform: uppercase; background: #eaf3ed; padding: 1px 4px; border-radius: 3px; }
+.message-controls { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.chat-choice-group { display: flex; flex-direction: column; gap: 6px; }
+.chat-control-title { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.chat-choice-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-choice-btn { border: 1px solid #c9d8ce; border-radius: 7px; background: white; color: var(--green); padding: 5px 10px; font-size: 10px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.chat-choice-btn:hover { background: var(--green-pale); border-color: var(--green); }
+.chat-choice-btn:disabled { opacity: .5; cursor: not-allowed; }
+.chat-control-card { border: 1px solid #dbe2dc; border-radius: 8px; background: white; padding: 10px; font-size: 10px; }
+.chat-control-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.chat-control-badge { font-size: 8px; font-weight: 700; padding: 2px 5px; border-radius: 4px; background: #e8f3ec; color: var(--green); letter-spacing: .04em; }
+.chat-control-badge.badge-amber { background: #fdf3e7; color: #b76e19; }
+.chat-control-label { font-size: 11px; }
+.chat-control-desc { font-size: 9px; color: var(--muted); margin: 0 0 7px; }
+.chat-control-fact-box { display: flex; align-items: center; justify-content: space-between; background: #f8faf7; border-radius: 5px; padding: 6px 8px; margin-bottom: 8px; border: 1px solid #edf1ee; }
+.chat-fact-key { color: var(--muted); font-size: 9px; }
+.chat-fact-val { color: var(--ink); font-size: 11px; }
+.chat-control-actions { display: flex; gap: 6px; }
+.chat-control-actions .btn { font-size: 9px; padding: 4px 10px; min-height: 26px; height: auto; }
+.chat-control-input-group { display: flex; gap: 6px; margin-top: 6px; }
+.chat-control-input { flex: 1; min-height: 28px; padding: 4px 8px; font-size: 10px; border: 1px solid #ccd5ce; border-radius: 6px; }
+.card-confirmed { border-color: #b9d8c2; background: #f6fbf7; }
+.card-confirmed .chat-confirm-btn { background: #4aa36e; border-color: #4aa36e; }
+.highlight-pulse { outline: 2px solid var(--green); outline-offset: 2px; box-shadow: 0 0 16px rgba(46, 125, 79, 0.4); transition: all 0.3s ease; }
 .chat-welcome { margin: auto 0; color: var(--muted); text-align: center; }
 .chat-welcome .chat-orb { margin: 0 auto 12px; }
 .chat-welcome strong { display: block; margin-bottom: 6px; color: var(--ink); font: 700 13px Manrope, "Segoe UI", sans-serif; }

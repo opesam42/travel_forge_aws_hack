@@ -545,18 +545,18 @@ async function confirmFact(name) {
   }
 }
 
-function renderDocumentFields(container, document, editable) {
+function renderDocumentFields(container, doc, editable) {
   container.replaceChildren();
-  for (const [name, value] of Object.entries(document.extracted_data || {})) {
+  for (const [name, value] of Object.entries(doc.extracted_data || {})) {
     if (name === "document_id" || name === "verification_status") continue;
     const label = createElement("label");
     label.append(createElement("span", null, humanize(name)));
-    const input = document.createElement("input");
-    input.value = state.documentEdits[document.id]?.[name] ?? value ?? "";
+    const input = createElement("input");
+    input.value = state.documentEdits[doc.id]?.[name] ?? value ?? "";
     input.disabled = !editable;
     input.addEventListener("input", () => {
-      state.documentEdits[document.id] = state.documentEdits[document.id] || {};
-      state.documentEdits[document.id][name] = input.value;
+      state.documentEdits[doc.id] = state.documentEdits[doc.id] || {};
+      state.documentEdits[doc.id][name] = input.value;
     });
     label.append(input);
     container.append(label);
@@ -636,6 +636,8 @@ async function reviewDocument(document, decision, card) {
   } catch (error) {
     notify(error.message);
   } finally {
+    buttons.forEach((button) => (button.disabled = false));
+    confirmButton.textContent = originalLabel;
     setBusy(false);
   }
 }
@@ -811,6 +813,225 @@ function renderClientTimeline() {
   }
 }
 
+function renderSources(container, sources) {
+  if (!container || !Array.isArray(sources) || sources.length === 0) {
+    if (container) container.hidden = true;
+    return;
+  }
+  container.replaceChildren();
+  container.hidden = false;
+  for (const source of sources) {
+    const item = cloneTemplate("tpl-chat-source");
+    const link = field(item, "link");
+    const badge = field(item, "badge");
+    const name = field(item, "name");
+
+    const isWeb = source.source_type === "trusted_web";
+    badge.textContent = isWeb ? "GOV.UK" : "POLICY";
+    name.textContent = source.source_name || "Official Policy";
+
+    const url = source.url || "";
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      link.href = url;
+      link.title = `Visit verified source: ${url}`;
+    } else {
+      link.removeAttribute("href");
+      link.removeAttribute("target");
+    }
+    container.append(item);
+  }
+}
+
+function renderControls(container, controls) {
+  if (!container || !Array.isArray(controls) || controls.length === 0) {
+    if (container) container.hidden = true;
+    return;
+  }
+  container.replaceChildren();
+  container.hidden = false;
+  const ALLOWED_CONTROL_TYPES = new Set([
+    "choice_list",
+    "single_choice",
+    "confirmation_card",
+    "missing_field_prompt",
+  ]);
+
+  for (const control of controls) {
+    if (!control || typeof control !== "object") continue;
+    // PLAN.md: Unknown component/action types are displayed as plain text or rejected; they must never execute arbitrary client or server code.
+    if (!ALLOWED_CONTROL_TYPES.has(control.type)) {
+      if (control.title) {
+        const fallback = createElement("p", "chat-unsupported-control", control.title);
+        container.append(fallback);
+      }
+      continue;
+    }
+
+    if (control.type === "choice_list" || control.type === "single_choice") {
+      const item = cloneTemplate("tpl-chat-control-choice");
+      setField(item, "title", control.title || "Suggested Next Steps");
+      const list = field(item, "options");
+      const options = Array.isArray(control.options) ? control.options : [];
+      for (const opt of options) {
+        const btn = createElement("button", "chat-choice-btn", opt.label || opt.value);
+        btn.type = "button";
+        btn.addEventListener("click", () => handleChatChoice(opt, btn));
+        list.append(btn);
+      }
+      if (options.length > 0) container.append(item);
+    } else if (control.type === "confirmation_card") {
+      const item = cloneTemplate("tpl-chat-control-confirmation");
+      const fieldLabel = control.field_label || humanize(control.field_name);
+      setField(item, "label", fieldLabel);
+      setField(
+        item,
+        "desc",
+        control.description || "Confirm this extracted fact for your case profile.",
+      );
+      setField(item, "key", fieldLabel);
+      setField(item, "value", control.proposed_value || "—");
+
+      const confirmBtn = item.querySelector('[data-action="confirm"]');
+      const dismissBtn = item.querySelector('[data-action="dismiss"]');
+      const card = item.querySelector(".confirmation-card");
+
+      confirmBtn.addEventListener("click", () => {
+        confirmFactFromChat(
+          confirmBtn,
+          control.field_name,
+          control.proposed_value,
+          card,
+        );
+      });
+      dismissBtn.addEventListener("click", () => {
+        card.remove();
+      });
+      container.append(item);
+    } else if (control.type === "missing_field_prompt") {
+      const item = cloneTemplate("tpl-chat-control-missing-field");
+      const fieldLabel = control.field_label || humanize(control.field_name);
+      setField(item, "label", fieldLabel);
+      setField(
+        item,
+        "desc",
+        control.description ||
+          `Please provide your ${fieldLabel.toLowerCase()} for route evaluation.`,
+      );
+      const input = field(item, "input");
+      if (control.placeholder) input.placeholder = control.placeholder;
+
+      const submitBtn = item.querySelector('[data-action="submit"]');
+      const card = item.querySelector(".missing-field-card");
+
+      const doSubmit = () => {
+        submitMissingFactFromChat(submitBtn, control.field_name, input, card);
+      };
+
+      submitBtn.addEventListener("click", doSubmit);
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          doSubmit();
+        }
+      });
+      container.append(item);
+    }
+  }
+}
+
+async function handleChatChoice(option, button) {
+  if (!option) return;
+  if (option.action === "run_audit") {
+    if (button) button.disabled = true;
+    await runAudit();
+    if (button) button.disabled = false;
+  } else if (option.action === "scroll_to_documents") {
+    const docSection =
+      $("client-documents-panel") ||
+      $("upload-form") ||
+      $("client-documents");
+    if (docSection) {
+      docSection.scrollIntoView({ behavior: "smooth", block: "center" });
+      docSection.classList.add("highlight-pulse");
+      setTimeout(() => docSection.classList.remove("highlight-pulse"), 2500);
+    }
+    const fileInput = $("upload-file");
+    if (fileInput) {
+      fileInput.focus();
+      try {
+        fileInput.click();
+      } catch (err) {
+        // Ignored if browser restricts synthetic click
+      }
+    }
+  } else {
+    const input = $("chat-input");
+    if (input) {
+      input.value = option.value || option.label || "";
+      await sendChat();
+    }
+  }
+}
+
+async function confirmFactFromChat(button, fieldName, value, card) {
+  if (!state.application || !fieldName) return;
+  button.disabled = true;
+  button.textContent = "Confirming...";
+  try {
+    await request(`/applications/${encodeURIComponent(state.application.id)}/intake`, {
+      method: "PATCH",
+      body: {
+        facts: { [fieldName]: value },
+        confirm_fields: [fieldName],
+      },
+    });
+    button.textContent = "Confirmed ✓";
+    button.classList.add("confirmed");
+    if (card) {
+      card.classList.add("card-confirmed");
+      const dismissBtn = card.querySelector('[data-action="dismiss"]');
+      if (dismissBtn) dismissBtn.remove();
+    }
+    notify(`Confirmed ${humanize(fieldName)}: ${value}`);
+    await refreshApplication();
+  } catch (err) {
+    button.disabled = false;
+    button.textContent = "Confirm Fact ✓";
+    showError(err);
+  }
+}
+
+async function submitMissingFactFromChat(button, fieldName, input, card) {
+  if (!state.application || !fieldName || !input) return;
+  const value = input.value.trim();
+  if (!value) {
+    notify("Please enter a value before submitting.");
+    input.focus();
+    return;
+  }
+  button.disabled = true;
+  input.disabled = true;
+  button.textContent = "Saving...";
+  try {
+    await request(`/applications/${encodeURIComponent(state.application.id)}/intake`, {
+      method: "PATCH",
+      body: {
+        facts: { [fieldName]: value },
+        confirm_fields: [fieldName],
+      },
+    });
+    button.textContent = "Saved ✓";
+    if (card) card.classList.add("card-confirmed");
+    notify(`Saved ${humanize(fieldName)}: ${value}`);
+    await refreshApplication();
+  } catch (err) {
+    button.disabled = false;
+    input.disabled = false;
+    button.textContent = "Submit Fact";
+    showError(err);
+  }
+}
+
 function renderChat() {
   const container = $("chat-messages");
   if (!container) return;
@@ -828,6 +1049,14 @@ function renderChat() {
     const timeText = formatTime(message.created_at);
     time.textContent = timeText;
     time.hidden = !timeText;
+
+    if (message.role === "assistant") {
+      const sourcesContainer = field(item, "sources");
+      renderSources(sourcesContainer, message.sources);
+
+      const controlsContainer = field(item, "controls");
+      renderControls(controlsContainer, message.controls);
+    }
     fragment.append(item);
   }
   container.insertBefore(fragment, sending);

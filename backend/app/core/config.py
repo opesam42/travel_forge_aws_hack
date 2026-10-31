@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     LLM_MODEL: Optional[str] = None
     LLM_FALLBACK_PROVIDER: Optional[str] = None
     GEMMA_MODEL: str = "gemma-4-26b-a4b-it"
-    GEMINI_MODEL: str = "gemma-4-26b-a4b-it"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     GROQ_MODEL: str = "gemma-4-26b-a4b-it"
 
     @property

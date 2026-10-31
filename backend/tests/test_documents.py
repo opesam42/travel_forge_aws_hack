@@ -65,15 +65,19 @@ class DocumentExtractionRouteTests(unittest.TestCase):
         self.client.close()
 
     def test_extraction_persists_typed_data_as_unverified_application_state(self):
-        extracted = documents.PassportData(
-            passport_number="A12345678",
-            full_name="A Person",
-            expiry_date="2030-01-01",
-            issuing_country="NG",
-        )
+        extracted_dict = {
+            "passport_number": "A12345678",
+            "full_name": "A Person",
+            "expiry_date": "2030-01-01",
+            "issuing_country": "NG",
+        }
+
+        async def _fake_extract_passport(data, mime_type):
+            return extracted_dict
+
         with patch(
-            "app.api.documents._extract_with_gemini",
-            return_value=extracted,
+            "app.services.ocr_service.extract_passport_fields",
+            side_effect=_fake_extract_passport,
         ):
             response = self.client.post(
                 "/api/documents/extract",
@@ -98,7 +102,14 @@ class DocumentExtractionRouteTests(unittest.TestCase):
 
     def test_extraction_does_not_process_another_users_application(self):
         self.application.user_id = uuid.uuid4()
-        with patch("app.api.documents._extract_with_gemini") as extractor:
+
+        async def _fake_extract_passport(data, mime_type):
+            return {"passport_number": "", "full_name": "", "expiry_date": "", "issuing_country": ""}
+
+        with patch(
+            "app.services.ocr_service.extract_passport_fields",
+            side_effect=_fake_extract_passport,
+        ) as extractor:
             response = self.client.post(
                 "/api/documents/extract",
                 data={

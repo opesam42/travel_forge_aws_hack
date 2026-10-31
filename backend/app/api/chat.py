@@ -19,6 +19,8 @@ from app.core.schemas import (
     ChatRequest,
     ChatResponse,
     ChatSource,
+    ChoiceOption,
+    DynamicChatControl,
 )
 from app.core.database import get_session
 from app.models.accounts import ChatMessage, ChatSession, User
@@ -61,9 +63,12 @@ class ProposedIntake(BaseModel):
 
 
 class ChatMessageResponse(BaseModel):
+    id: str | None = None
     role: str
     content: str
     created_at: datetime
+    sources: list[ChatSource] = Field(default_factory=list)
+    controls: list[DynamicChatControl] = Field(default_factory=list)
 
 
 @router.post("", response_model=ChatResponse)
@@ -332,11 +337,125 @@ async def handle_chat(
         application.latest_audit = pending_audit.model_dump(mode="json")
         application.stage = pending_audit.status.lower()
 
+    controls: list[DynamicChatControl] = []
+
+    # 1. Proposed facts confirmation cards
+    if application and proposed_intake:
+        verification = dict(
+            (application.applicant_data or {}).get("intake_verification") or {}
+        )
+        for field_name, value in proposed_intake.items():
+            if verification.get(field_name) != "user_confirmed":
+                controls.append(
+                    DynamicChatControl(
+                        type="confirmation_card",
+                        id=f"confirm-{field_name}",
+                        title="Confirm Applicant Fact",
+                        description="Extracted from your message for your case profile.",
+                        field_name=field_name,
+                        field_label=field_name.replace("_", " ").title(),
+                        proposed_value=str(value),
+                    )
+                )
+
+    # 2. If no proposed facts to confirm, suggest the next missing required fact
+    if application and not controls:
+        intake_facts = dict((application.applicant_data or {}).get("intake") or {})
+        candidate_fields = [
+            ("citizenship", "Citizenship", "e.g. Nigerian, Indian, Canadian"),
+            ("intended_travel_date", "Intended Travel Date", "YYYY-MM-DD"),
+            ("travel_purpose", "Travel Purpose", "e.g. Skilled worker employment"),
+            ("employer", "UK Employer / Sponsor", "e.g. NHS Trust, Tech Ltd"),
+        ]
+        for f_name, f_label, f_ph in candidate_fields:
+            if f_name not in intake_facts and f_name not in proposed_intake:
+                controls.append(
+                    DynamicChatControl(
+                        type="missing_field_prompt",
+                        id=f"missing-{f_name}",
+                        title=f"Missing Fact: {f_label}",
+                        description=f"Provide your {f_label.lower()} to evaluate visa rules.",
+                        field_name=f_name,
+                        field_label=f_label,
+                        placeholder=f_ph,
+                    )
+                )
+                break
+
+    # 3. Contextual quick choices
+    quick_options: list[ChoiceOption] = []
+    if application:
+        quick_options.append(
+            ChoiceOption(
+                id="opt-audit",
+                label="📋 Run Preparation Audit",
+                value="Run preparation audit",
+                action="run_audit",
+            )
+        )
+        has_documents = False
+        try:
+            has_documents = bool(
+                session.exec(
+                    select(ApplicationDocument)
+                    .where(
+                        ApplicationDocument.application_id == application.id,
+                        ApplicationDocument.user_id == user.id,
+                    )
+                    .limit(1)
+                ).first()
+            )
+        except Exception:
+            pass
+        if not has_documents:
+            quick_options.append(
+                ChoiceOption(
+                    id="opt-docs",
+                    label="📄 Upload Required Documents",
+                    value="Upload required documents",
+                    action="scroll_to_documents",
+                )
+            )
+        quick_options.append(
+            ChoiceOption(
+                id="opt-salary",
+                label="💷 Ask about Salary Threshold",
+                value="What is the minimum salary requirement for UK Skilled Worker visa?",
+                action="send_message",
+            )
+        )
+    else:
+        quick_options.append(
+            ChoiceOption(
+                id="opt-routes",
+                label="🇬🇧 Explore UK Visa Routes",
+                value="What visa routes to the UK do you support?",
+                action="send_message",
+            )
+        )
+
+    controls.append(
+        DynamicChatControl(
+            type="choice_list",
+            id="quick-choices",
+            title="Suggested Next Steps",
+            options=quick_options,
+        )
+    )
+
     session.add(
         ChatMessage(session_id=session_id, role="user", content=payload.message)
     )
     session.add(
-        ChatMessage(session_id=session_id, role="assistant", content=reply.strip())
+        ChatMessage(
+            session_id=session_id,
+            role="assistant",
+            content=reply.strip(),
+            meta={
+                "sources": [s.model_dump(mode="json") for s in unique_sources],
+                "controls": [c.model_dump(mode="json") for c in controls],
+            },
+        )
     )
     chat_session.updated_at = datetime.now(timezone.utc)
     session.add(chat_session)
@@ -365,6 +484,7 @@ async def handle_chat(
         ],
         extracted_intent=extracted_intent,
         proposed_intake=proposed_intake,
+        controls=controls,
         stage=response_stage,
     )
 
@@ -391,11 +511,31 @@ def get_chat_history(
         .where(ChatMessage.session_id == session_id)
         .order_by(ChatMessage.created_at)
     ).all()
-    return [
-        ChatMessageResponse(
-            role=message.role,
-            content=message.content,
-            created_at=message.created_at,
+    response_messages = []
+    for message in messages:
+        meta = getattr(message, "meta", None) or {}
+        sources_data = meta.get("sources", []) if isinstance(meta, dict) else []
+        controls_data = meta.get("controls", []) if isinstance(meta, dict) else []
+        parsed_sources = []
+        for s in sources_data:
+            try:
+                parsed_sources.append(ChatSource.model_validate(s))
+            except Exception:
+                pass
+        parsed_controls = []
+        for c in controls_data:
+            try:
+                parsed_controls.append(DynamicChatControl.model_validate(c))
+            except Exception:
+                pass
+        response_messages.append(
+            ChatMessageResponse(
+                id=str(message.id),
+                role=message.role,
+                content=message.content,
+                created_at=message.created_at,
+                sources=parsed_sources,
+                controls=parsed_controls,
+            )
         )
-        for message in messages
-    ]
+    return response_messages
