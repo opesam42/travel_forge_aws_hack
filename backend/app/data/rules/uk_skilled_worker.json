@@ -1,0 +1,62 @@
+{
+  "visa_type": "uk_skilled_worker",
+  "country": "United Kingdom",
+  "name": "UK Skilled Worker Visa",
+  "checklist": [
+    {
+      "id": "passport",
+      "label": "Valid International Passport",
+      "required": true
+    },
+    {
+      "id": "cos",
+      "label": "Certificate of Sponsorship (CoS)",
+      "required": true
+    },
+    {
+      "id": "tb_test",
+      "label": "IOM Tuberculosis Test Certificate",
+      "required": true
+    },
+    {
+      "id": "bank_statement",
+      "label": "28-Day Bank Statement (?1,270 maintenance)",
+      "required": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "passport_validity",
+      "document": "passport",
+      "name": "Passport 6-Month Validity Check",
+      "min_validity_days": 180,
+      "error_message": "Passport has less than 6 months validity remaining before travel date."
+    },
+    {
+      "id": "funds_check",
+      "document": "bank_statement",
+      "name": "Maintenance Funds (?1,270 Threshold)",
+      "min_balance_gbp": 1270,
+      "exchange_rate_ngn": 1950,
+      "min_balance_ngn": 2476500,
+      "period_days": 28,
+      "allow_employer_sponsor_override": true,
+      "error_message": "Closing balance or 28-day continuous balance falls below required ?1,270 (?2,476,500)."
+    },
+    {
+      "id": "cos_active",
+      "document": "cos",
+      "name": "Certificate of Sponsorship Status",
+      "validity_window_months": 3,
+      "error_message": "Certificate of Sponsorship was issued more than 3 months ago or shows status 'Used'."
+    },
+    {
+      "id": "tb_test_seal",
+      "document": "tb_test",
+      "name": "TB Certificate Approved Clinic & Stamp",
+      "required_issuer": "IOM",
+      "max_age_months": 6,
+      "error_message": "TB Test must be issued by an approved IOM clinic and be within 6 months of test date."
+    }
+  ]
+}

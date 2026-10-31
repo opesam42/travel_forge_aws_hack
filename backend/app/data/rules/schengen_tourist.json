@@ -1,0 +1,41 @@
+{
+  "visa_type": "schengen_tourist",
+  "country": "Schengen Area",
+  "name": "Schengen Tourist/Business Visa",
+  "checklist": [
+    {
+      "id": "passport",
+      "label": "Valid Passport (3 months beyond stay)",
+      "required": true
+    },
+    {
+      "id": "travel_insurance",
+      "label": "Travel Health Insurance (?30,000 cover)",
+      "required": true
+    },
+    {
+      "id": "flight_reservation",
+      "label": "Round-trip Flight Reservation",
+      "required": true
+    },
+    {
+      "id": "hotel_booking",
+      "label": "Proof of Accommodation",
+      "required": true
+    },
+    {
+      "id": "bank_statement",
+      "label": "3-Month Bank Statement",
+      "required": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "insurance_coverage",
+      "document": "travel_insurance",
+      "name": "Minimum ?30,000 Medical Cover",
+      "min_coverage_eur": 30000,
+      "error_message": "Travel insurance coverage must be at least ?30,000 for emergency medical."
+    }
+  ]
+}

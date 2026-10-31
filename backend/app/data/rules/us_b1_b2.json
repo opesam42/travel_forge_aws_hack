@@ -1,0 +1,36 @@
+{
+  "visa_type": "us_b1_b2",
+  "country": "United States",
+  "name": "US B1/B2 Visitor Visa",
+  "checklist": [
+    {
+      "id": "passport",
+      "label": "Valid International Passport (6 months+)",
+      "required": true
+    },
+    {
+      "id": "ds160",
+      "label": "DS-160 Confirmation Page",
+      "required": true
+    },
+    {
+      "id": "appointment_letter",
+      "label": "Embassy Appointment Confirmation",
+      "required": true
+    },
+    {
+      "id": "bank_statement",
+      "label": "6-Month Bank Statement",
+      "required": true
+    }
+  ],
+  "rules": [
+    {
+      "id": "passport_validity",
+      "document": "passport",
+      "name": "Passport 6-Month Validity",
+      "min_validity_days": 180,
+      "error_message": "Passport must be valid for at least 6 months beyond intended stay."
+    }
+  ]
+}

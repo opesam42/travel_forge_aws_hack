@@ -1,0 +1,52 @@
+{
+  "flights": [
+    {
+      "id": "fl_001",
+      "airline": "British Airways",
+      "flight_no": "BA76",
+      "route": "LOS (Lagos) ? LHR (London Heathrow)",
+      "departure": "2026-11-15T22:30:00Z",
+      "arrival": "2026-11-16T05:15:00Z",
+      "cabin": "Economy",
+      "price_ngn": 1850000,
+      "baggage": "2 ? 23kg standard allowance",
+      "stops": 0
+    },
+    {
+      "id": "fl_002",
+      "airline": "Virgin Atlantic",
+      "flight_no": "VS412",
+      "route": "LOS (Lagos) ? LHR (London Heathrow)",
+      "departure": "2026-11-16T10:15:00Z",
+      "arrival": "2026-11-16T17:00:00Z",
+      "cabin": "Economy",
+      "price_ngn": 1795000,
+      "baggage": "2 ? 23kg standard allowance",
+      "stops": 0
+    },
+    {
+      "id": "fl_003",
+      "airline": "Qatar Airways",
+      "flight_no": "QR1408",
+      "route": "LOS (Lagos) ? LHR (via Doha DOH)",
+      "departure": "2026-11-15T18:45:00Z",
+      "arrival": "2026-11-16T11:30:00Z",
+      "cabin": "Economy",
+      "price_ngn": 1520000,
+      "baggage": "2 ? 23kg standard allowance",
+      "stops": 1
+    },
+    {
+      "id": "fl_004",
+      "airline": "Delta Air Lines",
+      "flight_no": "DL55",
+      "route": "LOS (Lagos) ? JFK (New York)",
+      "departure": "2026-11-20T12:00:00Z",
+      "arrival": "2026-11-20T18:30:00Z",
+      "cabin": "Main Cabin",
+      "price_ngn": 2200000,
+      "baggage": "2 ? 23kg standard allowance",
+      "stops": 0
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+[
+  {
+    "rule_id": "uk_passport_validity",
+    "visa_type": "uk_standard_visitor",
+    "category": "document_requirement",
+    "condition_summary": "Passport must be valid for the entire stay plus 6 months",
+    "target_field": "passport_validity_months_beyond_stay",
+    "operator": ">=",
+    "threshold_value": 6.0,
+    "threshold_unit": "months",
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": true,
+    "missing_fields": [],
+    "operator_question": null,
+    "raw_excerpt": "Passport Required\nValid for entire stay + 6 months"
+  },
+  {
+    "rule_id": "uk_bank_statement_duration",
+    "visa_type": "uk_standard_visitor",
+    "category": "document_requirement",
+    "condition_summary": "Bank statements must cover a period of 3 to 6 months",
+    "target_field": "bank_statement_coverage_months",
+    "operator": ">=",
+    "threshold_value": 3.0,
+    "threshold_unit": "months",
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": true,
+    "missing_fields": [],
+    "operator_question": null,
+    "raw_excerpt": "Bank statements Required\n3–6 months personal or sponsor"
+  },
+  {
+    "rule_id": "uk_funds_sufficiency",
+    "visa_type": "uk_standard_visitor",
+    "category": "statutory",
+    "condition_summary": "Applicant must show they can cover trip costs without relying on public funds",
+    "target_field": "available_funds_ngn",
+    "operator": ">=",
+    "threshold_value": null,
+    "threshold_unit": "NGN",
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": false,
+    "missing_fields": [
+      "minimum_funds_amount"
+    ],
+    "operator_question": "The policy says 'no fixed amount' and 'cover trip costs'. What is the minimum NGN balance or specific calculation method (e.g., daily rate x days) that Wakanow requires for the 'Proof of funds' check?",
+    "raw_excerpt": "There is no fixed amount. You must show you can cover trip costs without relying on public funds. Wakanow reviews your profile individually."
+  },
+  {
+    "rule_id": "us_passport_validity",
+    "visa_type": "us_b1_b2_visitor",
+    "category": "document_requirement",
+    "condition_summary": "Passport must be valid for at least 6 months beyond the stay",
+    "target_field": "passport_validity_months_beyond_stay",
+    "operator": ">=",
+    "threshold_value": 6.0,
+    "threshold_unit": "months",
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": true,
+    "missing_fields": [],
+    "operator_question": null,
+    "raw_excerpt": "Valid Nigerian passport (6+ months validity beyond stay)"
+  },
+  {
+    "rule_id": "us_ties_to_home",
+    "visa_type": "us_b1_b2_visitor",
+    "category": "statutory",
+    "condition_summary": "Applicant must provide proof of strong ties to Nigeria",
+    "target_field": "ties_to_home_country_score",
+    "operator": ">=",
+    "threshold_value": null,
+    "threshold_unit": null,
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": false,
+    "missing_fields": [
+      "definition_of_strong_ties",
+      "minimum_ties_criteria"
+    ],
+    "operator_question": "The policy requires 'Proof of strong ties to Nigeria'. What specific documents or criteria (e.g., property deed, employment length, family dependents) constitute 'strong ties' for a deterministic pass/fail check?",
+    "raw_excerpt": "Proof of strong ties to Nigeria (employment, business, family)"
+  },
+  {
+    "rule_id": "us_financial_evidence",
+    "visa_type": "us_b1_b2_visitor",
+    "category": "statutory",
+    "condition_summary": "Applicant must provide financial evidence for trip costs",
+    "target_field": "available_funds_ngn",
+    "operator": ">=",
+    "threshold_value": null,
+    "threshold_unit": "NGN",
+    "holding_period_days": null,
+    "exception_clause": null,
+    "is_complete": false,
+    "missing_fields": [
+      "minimum_funds_amount"
+    ],
+    "operator_question": "The policy requires 'Financial evidence for trip costs' but gives no amount. What is the minimum NGN balance or proof of funds required for a US B1/B2 visa application?",
+    "raw_excerpt": "Financial evidence for trip costs"
+  }
+]
