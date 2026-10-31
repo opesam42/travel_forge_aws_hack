@@ -25,7 +25,18 @@ else:
 # Replace localhost with 127.0.0.1 if needed for reliable connection
 sync_db_url = sync_db_url.replace("localhost", "127.0.0.1")
 
-engine = create_engine(sync_db_url, echo=False)
+# Hosted PostgreSQL providers can close idle pooled connections, especially
+# during the time between application startup and the first browser request.
+# Validate a connection on checkout and recycle long-lived connections before
+# they become stale.
+engine = create_engine(
+    sync_db_url,
+    echo=False,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_timeout=15,
+    connect_args={"connect_timeout": 10},
+)
 
 
 def get_session():

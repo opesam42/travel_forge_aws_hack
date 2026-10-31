@@ -589,21 +589,26 @@ function renderClientDocuments() {
     field(card, "actions").hidden = !pending;
     field(card, "help").hidden = pending;
     card.querySelector('[data-action="reject"]').addEventListener("click", () => {
-      reviewDocument(document, "reject");
+      reviewDocument(document, "reject", card);
     });
     card.querySelector('[data-action="confirm"]').addEventListener("click", () => {
-      reviewDocument(document, "correct");
+      reviewDocument(document, "confirm", card);
     });
     list.append(card);
   }
 }
 
-async function reviewDocument(document, decision) {
+async function reviewDocument(document, decision, card) {
   if (state.busy) return;
+  const buttons = [...card.querySelectorAll("button")];
+  const confirmButton = card.querySelector('[data-action="confirm"]');
+  const originalLabel = confirmButton.textContent;
+  buttons.forEach((button) => (button.disabled = true));
+  confirmButton.textContent = decision === "reject" ? "Rejecting…" : "Saving…";
   setBusy(true);
   try {
     let payload = { decision };
-    if (decision === "correct") {
+    if (decision === "confirm") {
       const edits = state.documentEdits[document.id] || {};
       const correctedData = {};
       let changed = false;
