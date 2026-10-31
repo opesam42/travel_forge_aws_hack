@@ -277,6 +277,34 @@ This project uses **Gemma 4** (`gemma-4-26b-a4b-it`), Google's open-source large
 
 ---
 
+## 🚀 What We Would Have Done With More Time
+
+TravelForge currently covers UK visa case preparation: intake, document OCR, rule checks, caseworker review and manual submission handoff. With more time, we would have extended it into a fuller end-to-end travel agency workflow.
+
+### ✈️ Flight Ticketing
+
+- Integrate a flight search and booking API (e.g. Amadeus or Duffel) so agency staff can search fares and build itineraries inside the case workspace.
+- Generate flight reservations that can support a visa application, with travel dates checked against the applicant's intended stay and the visa rules.
+- Run itinerary checks in the audit graph, for example flagging dates that conflict with passport validity or with the declared purpose of travel.
+- Keep a human in the loop: no ticket is purchased without explicit staff confirmation and a clear audit trail.
+
+### 🛂 Visa Counselling
+
+- Add an applicant-facing counselling mode in the chat, giving plain-language guidance on documents, timelines and common refusal reasons, grounded in the pgvector policy sources.
+- Add interview and appointment preparation, including a tailored checklist and likely questions for the applicant's route.
+- Support more visa types and destination countries, with rule sets sourced and approved by operators.
+- Let applicants book sessions with human counsellors and hand off the full case context, so the AI supports counsellors rather than replacing them.
+- Add multilingual support so applicants can get guidance in their preferred language.
+
+### 🏨 Accommodation & Lodging
+
+- Integrate a hotel and lodging API so staff can search and shortlist stays that match the itinerary and the applicant's budget.
+- Generate accommodation evidence (booking confirmations, host invitation details) to include in the case documents.
+- Cross-check lodging against the itinerary and financial evidence, for example flagging a total stay cost that exceeds the applicant's declared funds.
+- Extend the post-decision travel checklist, currently demo data, to include real transfers and local lodging details.
+
+> These are planned extensions, not current features. TravelForge today does not purchase flights, hotels or transfers (see *What TravelForge Does NOT Do*).
+
 ## ⚠️ Policy Data Disclaimer
 
 The rule fixtures under `backend/app/data/rules/` are **synthetic demo data** used to demonstrate the evaluator workflow. They are clearly labelled as such in the UI and must not be treated as legal immigration guidance. No threshold, requirement, or outcome shown in this demo constitutes official UK Visas and Immigration advice.
@@ -300,10 +328,8 @@ The rule fixtures under `backend/app/data/rules/` are **synthetic demo data** us
 
 ## 🔗 Submission Links
 
-- **Public Repository:** *(add your GitHub URL here)*
-- **Demo Video:** *(add your 2-minute demo video link here)*
+- **Public Repository:** https://github.com/opesam42/travel_forge_aws_hack
+- **Demo Video:** https://drive.google.com/file/d/19pTDf9xmLlwhU-PLq07gH3K9UnmDemz5/view?usp=sharing
 
----
--
 
 *TravelForge supports preparation. Visa decisions are made only by the relevant authority.*
