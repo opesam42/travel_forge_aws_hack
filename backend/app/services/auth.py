@@ -2,6 +2,8 @@ import hashlib
 import hmac
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Optional
+from urllib.parse import urlsplit
 
 from fastapi import Depends, HTTPException, Request, Response, status
 from sqlmodel import Session, select
@@ -80,18 +82,57 @@ def clear_session_cookie(response: Response) -> None:
     )
 
 
+def _extract_origin_from_url(url_str: str) -> Optional[str]:
+    try:
+        parsed = urlsplit(url_str)
+        if parsed.scheme and parsed.netloc:
+            return f"{parsed.scheme}://{parsed.netloc}"
+    except Exception:
+        pass
+    return None
+
+
 def verify_request_origin(request: Request) -> None:
     origin = request.headers.get("origin")
-    if origin and origin not in settings.allowed_origins:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Request origin is not allowed.",
-        )
-    if settings.ENVIRONMENT.lower() == "production" and not origin:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="An allowed request origin is required.",
-        )
+    if not origin:
+        referer = request.headers.get("referer")
+        if referer:
+            origin = _extract_origin_from_url(referer)
+
+    if not origin:
+        if settings.ENVIRONMENT.lower() == "production":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="An allowed request origin is required.",
+            )
+        return
+
+    normalized_origin = origin.strip().rstrip("/")
+    if normalized_origin in settings.allowed_origins:
+        return
+
+    # Check same-origin against host or proxy headers (e.g. Render reverse proxy)
+    forwarded_host = request.headers.get("x-forwarded-host")
+    host = forwarded_host or request.headers.get("host")
+    proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    if host:
+        same_origins = {
+            f"{proto}://{host}".rstrip("/"),
+            f"https://{host}".rstrip("/"),
+            f"http://{host}".rstrip("/"),
+        }
+        if normalized_origin in same_origins:
+            return
+
+    # Check against request.base_url
+    base_origin = f"{request.base_url.scheme}://{request.base_url.netloc}".rstrip("/")
+    if normalized_origin == base_origin:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Request origin is not allowed.",
+    )
 
 
 def get_current_user(

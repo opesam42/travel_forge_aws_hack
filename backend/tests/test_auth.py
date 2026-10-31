@@ -1,7 +1,28 @@
 import unittest
+from unittest.mock import patch
+
+from fastapi import HTTPException
+from starlette.requests import Request
 
 from app.api.auth import SignupRequest
-from app.services.auth import hash_password, verify_password
+from app.core.config import settings
+from app.services.auth import hash_password, verify_password, verify_request_origin
+
+
+def make_request(headers=None, scheme="http", server=("testserver", 80)):
+    raw_headers = []
+    if headers:
+        for k, v in headers.items():
+            raw_headers.append((k.lower().encode("latin-1"), v.encode("latin-1")))
+    scope = {
+        "type": "http",
+        "method": "POST",
+        "scheme": scheme,
+        "server": server,
+        "path": "/api/login",
+        "headers": raw_headers,
+    }
+    return Request(scope)
 
 
 class AuthenticationTests(unittest.TestCase):
@@ -37,3 +58,51 @@ class AuthenticationTests(unittest.TestCase):
                 name="Client",
                 password="short",
             )
+
+    def test_verify_request_origin_allows_configured_origin(self):
+        req = make_request(headers={"Origin": settings.allowed_origins[0]})
+        verify_request_origin(req)  # Should not raise
+
+    def test_verify_request_origin_allows_same_origin_from_host(self):
+        req = make_request(
+            headers={"Origin": "https://travelforge.onrender.com", "Host": "travelforge.onrender.com"}
+        )
+        verify_request_origin(req)  # Same host matches origin
+
+    def test_verify_request_origin_allows_same_origin_from_proxy_headers(self):
+        req = make_request(
+            headers={
+                "Origin": "https://travelforge.onrender.com",
+                "Host": "10.0.0.1:10000",
+                "X-Forwarded-Host": "travelforge.onrender.com",
+                "X-Forwarded-Proto": "https",
+            }
+        )
+        verify_request_origin(req)  # Forwarded host matches origin
+
+    def test_verify_request_origin_handles_trailing_slash(self):
+        req = make_request(
+            headers={"Origin": f"{settings.allowed_origins[0]}/"}
+        )
+        verify_request_origin(req)  # Normalized and matches
+
+    def test_verify_request_origin_allows_via_referer_fallback(self):
+        req = make_request(
+            headers={"Referer": "https://travelforge.onrender.com/login", "Host": "travelforge.onrender.com"}
+        )
+        verify_request_origin(req)
+
+    def test_verify_request_origin_rejects_unknown_origin(self):
+        req = make_request(headers={"Origin": "https://malicious-site.com"})
+        with self.assertRaises(HTTPException) as ctx:
+            verify_request_origin(req)
+        self.assertEqual(ctx.exception.status_code, 403)
+        self.assertEqual(ctx.exception.detail, "Request origin is not allowed.")
+
+    def test_verify_request_origin_production_requires_origin(self):
+        with patch.object(settings, "ENVIRONMENT", "production"):
+            req = make_request(headers={})
+            with self.assertRaises(HTTPException) as ctx:
+                verify_request_origin(req)
+            self.assertEqual(ctx.exception.status_code, 403)
+            self.assertEqual(ctx.exception.detail, "An allowed request origin is required.")

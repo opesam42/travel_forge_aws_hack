@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     HOST: str = "0.0.0.0"
     ENVIRONMENT: str = "development"
-    CORS_ORIGIN: str = "http://localhost:5173"
+    CORS_ORIGIN: str = "http://localhost:5173,http://localhost:8000,http://127.0.0.1:8000,http://127.0.0.1:8765"
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://travelforge:travelforge@localhost:5432/travelforge"
@@ -61,7 +61,11 @@ class Settings(BaseSettings):
 
     @property
     def allowed_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.CORS_ORIGIN.split(",") if origin.strip()]
+        return [
+            origin.strip().rstrip("/")
+            for origin in self.CORS_ORIGIN.split(",")
+            if origin.strip()
+        ]
 
     @property
     def secure_auth_cookie(self) -> bool:
