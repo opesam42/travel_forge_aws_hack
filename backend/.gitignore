@@ -1,0 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual Environments (CRITICAL)
+venv/
+.venv/
+node_modules/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets (CRITICAL)
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDEs and Code Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.pydevproject
+
+# Local Databases, Vector Stores & Dumps
+*.sqlite3
+*.db
+chroma_db/
+chromadb/
+data/
+!app/data/
+!app/data/raw_data/
+!app/data/raw_data/travel_data.txt
+*.log
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Packaging & Distribution
+build/
+dist/
+*.egg-info/
+*.egg
